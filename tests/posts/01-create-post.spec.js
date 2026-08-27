@@ -246,10 +246,9 @@ test.describe('Scenario 2.4: ผู้ใช้งานสามารถลบ
     await page.locator('button:has-text("ลบโพสต์"), a:has-text("ลบโพสต์")').first().click();
 
     // 4. กดยืนยันในหน้าต่างแจ้งเตือน -> กดปุ่ม "ใช่, ลบเลย"
-    const confirmDeleteBtn = page.getByRole('button', { name: /ใช่.*ลบเลย/i });
-    await confirmDeleteBtn.scrollIntoViewIfNeeded();
-    await expect(confirmDeleteBtn).toBeVisible({ timeout: 10000 });
-    await confirmDeleteBtn.click();
+    await page.getByRole('button', { name: /ใช่.*ลบเลย/i }).scrollIntoViewIfNeeded();
+    await expect(page.getByRole('button', { name: /ใช่.*ลบเลย/i })).toBeVisible({ timeout: 10000 });
+    await page.getByRole('button', { name: /ใช่.*ลบเลย/i }).click();
 
     // 5. ตรวจสอบหน้าต่างแจ้งเตือน "ลบสำเร็จ!" และ "โพสต์ของคุณถูกลบเรียบร้อยแล้ว"
     await expect(page.getByRole('heading', { name: 'ลบสำเร็จ!' })).toBeVisible({ timeout: 15000 });
