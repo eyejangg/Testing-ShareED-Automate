@@ -10,7 +10,7 @@
 1. [ภาพรวมและสถาปัตยกรรมการทดสอบ (Architecture Overview)](#1-ภาพรวมและสถาปัตยกรรมการทดสอบ-architecture-overview)
 2. [สรุปสิ่งที่เราได้พัฒนาและปรับปรุงทั้งหมด (What We Have Done)](#2-สรุปสิ่งที่เราได้พัฒนาและปรับปรุงทั้งหมด-what-we-have-done)
 3. [รายละเอียด 8 Test Cases (Test Cases Breakdown)](#3-รายละเอียด-8-test-cases-test-cases-breakdown)
-4. [เจาะลึกการอ่านโค้ดระบบ Session & Cleanup ที่เพิ่มเข้ามา (Code Deep Dive)](#4-เจาะลึกการอ่านโค้ดระบบ-session--cleanup-ที่เพิ่มเข้ามา-code-deep-dive)
+4. [เจาะลึกการอ่านโค้ดระบบ Session & Cleanup (Code Deep Dive)](#4-เจาะลึกการอ่านโค้ดระบบ-session--cleanup-code-deep-dive)
 5. [โครงสร้างไดเรกทอรีและไฟล์สำคัญ (Project Structure)](#5-โครงสร้างไดเรกทอรีและไฟล์สำคัญ-project-structure)
 6. [คู่มือคำสั่งที่ใช้งานบ่อย (Playwright Commands Cheatsheet)](#6-คู่มือคำสั่งที่ใช้งานบ่อย-playwright-commands-cheatsheet)
 7. [เทคนิคและ Best Practices ที่ใช้ในโปรเจกต์](#7-เทคนิคและ-best-practices-ที่ใช้ในโปรเจกต์)
@@ -49,11 +49,11 @@ flowchart TD
 |---|---|---|
 | 1 | **เปลี่ยนจาก TypeScript เป็น JavaScript (.js)** | ลดความซับซ้อนของ Build step รันได้เร็วและยืดหยุ่นขึ้นในสภาพแวดล้อมจริง |
 | 2 | **รวมชุดทดสอบเป็นไฟล์เดียว (`01-create-post.spec.js`)** | แก้ปัญหาข้อมูลขัดแย้งกัน (Data race condition) และรันเรียงลำดับตาม User Journey จริง |
-| 3 | **พัฒนาระบบ Auto-Cleanup (`cleanup.js`)** | วนลูปตรวจจับและลบแบบร่างและโพสต์ผ่าน UI อัตโนมัติ พร้อมตรวจจับ Async API cards |
+| 3 | **พัฒนาระบบ Auto-Cleanup (`cleanup.js`) แบบโมดูลาร์** | แยกฟังก์ชัน `cleanDrafts`, `cleanMyPosts`, `deleteCurrentOpenPost` ชัดเจน ไม่มี `const` ซับซ้อน |
 | 4 | **ปรับแต่ง `TC-POST-04` (แก้ไขโพสต์ + แนบไฟล์ใหม่)** | รองรับการเปลี่ยนไฟล์ PDF (`แก้ไขโพสต์.pdf`) และรูปภาพประกอบ (`แก้ไข_ภาษาไทย.png`) อย่างถูกต้อง |
 | 5 | **เพิ่ม `TC-POST-06` (Positive Upload Validation)** | ทดสอบการอัปโหลดไฟล์นามสกุลที่ถูกต้อง (.png, .jpeg, .pdf) ให้ระบบอนุญาตและแสดงผล |
 | 6 | **เพิ่ม `.scrollIntoViewIfNeeded()` ทุกจุด** | เลื่อนหน้าจอลงไปมององค์ประกอบทุกตัวก่อนทำการ `expect(...).toBeVisible()` ป้องกัน Flaky Tests |
-| 7 | **แก้ไข Strict Mode Violation ในการ Assert Modal** | แยกตรวจจับ `heading: ลบสำเร็จ!` และข้อความ `โพสต์ของคุณถูกลบเรียบร้อยแล้ว` ให้ผ่าน 100% |
+| 7 | **เขียน Selector แบบ Direct Chaining** | ใช้ `await page.getByRole('button', { name: /ใช่.*ลบเลย/i }).click()` แบบตรงๆ อ่านง่าย สบายตา |
 
 ---
 
@@ -93,6 +93,12 @@ flowchart TD
 ### 📌 Scenario 2.4: ผู้ใช้งานสามารถลบโพสต์ของตนเองได้สำเร็จ
 * **[Positive] TC-POST-05: ผู้ใช้งานสามารถลบโพสต์ของตนเองได้สำเร็จ**
   * **ขั้นตอน:** เข้าหน้า Profile ➔ คลิกโพสต์จาก TC-04 ➔ กดปุ่ม "ลบโพสต์" ➔ กดยืนยัน "ใช่, ลบเลย" ➔ กดปุ่ม "OK"
+  * **โค้ดที่ใช้งาน (Direct Chaining):**
+    ```javascript
+    await page.getByRole('button', { name: /ใช่.*ลบเลย/i }).scrollIntoViewIfNeeded();
+    await expect(page.getByRole('button', { name: /ใช่.*ลบเลย/i })).toBeVisible({ timeout: 10000 });
+    await page.getByRole('button', { name: /ใช่.*ลบเลย/i }).click();
+    ```
   * **การตรวจสอบ (Assertion):**
     * แสดง Modal หัวข้อ `ลบสำเร็จ!` และข้อความ `โพสต์ของคุณถูกลบเรียบร้อยแล้ว`
     * ชื่อโพสต์ดังกล่าวถูกถอนออกจากระบบและมองไม่เห็นอีกต่อไป (`toBeHidden()`)
@@ -121,28 +127,29 @@ flowchart TD
 
 ---
 
-## 4. เจาะลึกการอ่านโค้ดระบบ Session & Cleanup ที่เพิ่มเข้ามา (Code Deep Dive)
-
-ในโปรเจกต์นี้เรามี 3 ไฟล์หลักที่ทำงานเบื้องหลังเพื่อควบคุมให้ระบบทดสอบมีความเสถียรและสะอาด 100%:
+## 4. เจาะลึกการอ่านโค้ดระบบ Session & Cleanup (Code Deep Dive)
 
 ```text
-┌─────────────────────────────────────────────────────────────┐
-│ 1. global-setup.js   (ทำงานก่อนเริ่มรันเคสแรก)              │
-│    └─► loginUser() -> บันทึก Session -> cleanAll...()       │
-├─────────────────────────────────────────────────────────────┤
-│ 2. cleanup.js        (โมดูลฟังก์ชันอรรถประโยชน์)             │
-│    ├─► loginUser(page, email, password)                     │
-│    └─► cleanAllUserPostsAndDrafts(page)                     │
-├─────────────────────────────────────────────────────────────┤
-│ 3. global-teardown.js (ทำงานหลังรันครบทุกเคสจบ)              │
-│    └─► โหลด Session เดิม -> cleanAll...() คืน Clean State   │
-└─────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────┐
+│ 1. global-setup.js    (ทำงานก่อนเริ่มรันเคสแรก)                         │
+│    └─► loginUser() -> บันทึก Session -> cleanAllUserPostsAndDrafts()   │
+├────────────────────────────────────────────────────────────────────────┤
+│ 2. cleanup.js         (โมดูลฟังก์ชันอรรถประโยชน์ - ไม่มี const ซับซ้อน)  │
+│    ├─► loginUser(page, email, password)                                │
+│    ├─► deleteCurrentOpenPost(page)                                     │
+│    ├─► cleanDrafts(page)                                               │
+│    ├─► cleanMyPosts(page)                                              │
+│    └─► cleanAllUserPostsAndDrafts(page)                                │
+├────────────────────────────────────────────────────────────────────────┤
+│ 3. global-teardown.js (ทำงานหลังรันครบทุกเคสจบ)                         │
+│    └─► โหลด Session เดิม -> cleanAllUserPostsAndDrafts() คืน Clean State│
+└────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-### 📄 4.1 ไฟล์ `global-setup.js` (สคริปต์เตรียมความพร้อมก่อนรัน)
-ไฟล์นี้จะถูก Playwright เรียกทำงาน **อัตโนมัติ 1 ครั้งก่อนเริ่มการทดสอบทั้งหมด**
+### 📄 4.1 ไฟล์ `global-setup.js`
+ทำหน้าที่เตรียมไฟล์ Session และเคลียร์ข้อมูลเริ่มต้นก่อนเริ่มรันเคสแรก:
 
 ```javascript
 // @ts-check
@@ -152,33 +159,28 @@ const fs = require('fs');
 const { loginUser, cleanAllUserPostsAndDrafts } = require('./tests/utils/cleanup');
 
 async function globalSetup(config) {
-  // 1. ตรวจสอบและสร้างโฟลเดอร์สำหรับเก็บ Session Auth (playwright/.auth/)
   const authDir = path.join(__dirname, 'playwright/.auth');
   if (!fs.existsSync(authDir)) {
     fs.mkdirSync(authDir, { recursive: true });
   }
   const storageStatePath = path.join(authDir, 'user.json');
 
-  // 2. เปิด Browser จำลองแบบ Headless (ทำงานเงียบๆ เบื้องหลัง)
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext();
   const page = await context.newPage();
 
   try {
-    // 3. ทำการล็อกอินเข้าสู่ระบบผ่านฟังก์ชัน loginUser()
+    // 1. เข้าสู่ระบบและบันทึก auth state ลง user.json
     await loginUser(page);
-
-    // 4. บันทึก Cookie / LocalStorage / Token เก็บลงไฟล์ user.json
     await context.storageState({ path: storageStatePath });
     console.log(`✅ [Global Setup] บันทึก Session สำเร็จที่: ${storageStatePath}`);
 
-    // 5. สั่งลบโพสต์และแบบร่างตกค้างในบัญชีออกให้หมด ก่อนเริ่มรันเคสแรก
+    // 2. เคลียร์ข้อมูลเดิมที่ตกค้างในบัญชีออกให้หมด
     await cleanAllUserPostsAndDrafts(page);
     console.log('✅ [Global Setup] เคลียร์โพสต์และแบบร่างเดิมทั้งหมดเรียบร้อย พร้อมเริ่มรันชุดทดสอบ!\n');
   } catch (error) {
     console.error('⚠️ [Global Setup] เกิดข้อผิดพลาด:', error);
   } finally {
-    // 6. ปิด Browser ของ Setup คืน Memory
     await context.close().catch(() => {});
     await browser.close().catch(() => {});
   }
@@ -189,8 +191,8 @@ module.exports = globalSetup;
 
 ---
 
-### 📄 4.2 ไฟล์ `global-teardown.js` (สคริปต์เก็บกวาดข้อมูลหลังจบการทดสอบ)
-ไฟล์นี้จะถูก Playwright เรียกทำงาน **อัตโนมัติ 1 ครั้งหลังจากการทดสอบทั้งหมดสิ้นสุดลง** (ไม่ว่าจะผ่านหรือเฟล)
+### 📄 4.2 ไฟล์ `global-teardown.js`
+ทำหน้าที่เก็บกวาดข้อมูลทั้งหมดหลังจบการทดสอบทุกเคส:
 
 ```javascript
 // @ts-check
@@ -205,7 +207,7 @@ async function globalTeardown(config) {
   const authFile = path.join(__dirname, 'playwright/.auth/user.json');
   const browser = await chromium.launch({ headless: true });
   
-  // 1. เปิด Browser โดยดึง Session ที่ล็อกอินค้างไว้จาก user.json มาใช้ทันที
+  // โหลด Session ที่ล็อกอินไว้แล้วมาใช้
   const context = fs.existsSync(authFile) 
     ? await browser.newContext({ storageState: authFile })
     : await browser.newContext();
@@ -213,13 +215,12 @@ async function globalTeardown(config) {
   const page = await context.newPage();
 
   try {
-    // 2. เรียกฟังก์ชันเคลียร์ข้อมูล ลบแบบร่าง (Draft) และโพสต์ที่สร้างระหว่างเทสออกจนหมด
+    // สั่งล้างข้อมูลที่สร้างขึ้นระหว่างการทดสอบทิ้งทั้งหมด
     await cleanAllUserPostsAndDrafts(page);
     console.log('✅ [Global Teardown] เก็บกวาดและลบข้อมูลทดสอบทั้งหมดเรียบร้อย คืน Clean State 100%!\n');
   } catch (error) {
     console.error('⚠️ [Global Teardown] เกิดข้อผิดพลาด:', error);
   } finally {
-    // 3. ปิด Browser
     await context.close().catch(() => {});
     await browser.close().catch(() => {});
   }
@@ -230,13 +231,20 @@ module.exports = globalTeardown;
 
 ---
 
-### 📄 4.3 ไฟล์ `tests/utils/cleanup.js` (โมดูลฟังก์ชันอรรถประโยชน์)
-ไฟล์นี้รวม 2 ฟังก์ชันหลักที่ใช้งานซ้ำในระบบ:
+### 📄 4.3 ไฟล์ `tests/utils/cleanup.js` (ฉบับปรับปรุงใหม่ - Direct Chaining)
 
-#### 1) ฟังก์ชัน `loginUser(page, email, password)`
-* **หน้าที่:** เข้าสู่หน้าเว็บหลัก ตรวจสอบว่ามีปุ่ม "เข้าสู่ระบบ" หรือไม่ ถ้ามีให้กรอกอีเมลและรหัสผ่าน แล้วกดปุ่มเข้าสู่ระบบ พร้อมรอจนกว่าจะ Redirect เข้าหน้า `/home`
 ```javascript
-async function loginUser(page, email = 'ptwptw1600@gmail.com', password = '_Eart1101') {
+// @ts-check
+const { Page } = require('@playwright/test');
+
+const APP_URL = 'https://share-ed-frontend-gamma.vercel.app';
+const DEFAULT_EMAIL = 'ptwptw1600@gmail.com';
+const DEFAULT_PASSWORD = '_Eart1101';
+
+/**
+ * 🔑 1. ฟังก์ชันเข้าสู่ระบบ (Login)
+ */
+async function loginUser(page, email = DEFAULT_EMAIL, password = DEFAULT_PASSWORD) {
   await page.goto(`${APP_URL}/`);
 
   if (await page.getByRole('link', { name: 'เข้าสู่ระบบ' }).isVisible({ timeout: 3000 }).catch(() => false)) {
@@ -247,45 +255,108 @@ async function loginUser(page, email = 'ptwptw1600@gmail.com', password = '_Eart
     await page.waitForURL(/.*home/, { timeout: 15000 }).catch(() => { });
   }
 }
-```
 
-#### 2) ฟังก์ชัน `cleanAllUserPostsAndDrafts(page)`
-* **หน้าที่:** ไปยังหน้าโปรไฟล์ (`/profile`) เพื่อเคลียร์ข้อมูล 2 ส่วน:
-  1. **เคลียร์แท็บ "แบบร่าง" (Drafts):**
-     * คลิกแท็บ `แบบร่าง` ➔ ตรวจจับปุ่ม `แก้ไขโพสต์` (รอ API โหลดด้วย `.waitFor({ state: 'visible' })`)
-     * เข้าไปหน้าแก้ไขแบบร่าง ➔ กดปุ่ม `ลบโพสต์` ➔ กดยืนยันปุ่มสีแดง `ใช่, ลบเลย` ➔ กด `OK`
-     * วนลูปจนกระทั่งไม่พบแบบร่างเหลืออยู่ (`break`)
-  2. **เคลียร์แท็บ "โพสต์ของฉัน" (My Posts):**
-     * คลิกแท็บ `โพสต์ของฉัน` ➔ ตรวจจับการ์ดโพสต์
-     * คลิกเข้าไปที่หน้ารายละเอียดโพสต์ ➔ กดปุ่ม `ลบโพสต์` ➔ กดยืนยัน `ใช่, ลบเลย` ➔ กด `OK`
-     * วนลูปจนกระทั่งไม่มีโพสต์เหลืออยู่ในแท็บ
+/**
+ * 🗑️ 2. ฟังก์ชันกดยืนยันลบโพสต์ที่เปิดอยู่ (ลบโพสต์ -> ใช่, ลบเลย -> OK)
+ */
+async function deleteCurrentOpenPost(page) {
+  if (await page.locator('button:has-text("ลบโพสต์"), button:has-text("ลบ"), a:has-text("ลบโพสต์")').first().isVisible({ timeout: 5000 }).catch(() => false)) {
+    await page.locator('button:has-text("ลบโพสต์"), button:has-text("ลบ"), a:has-text("ลบโพสต์")').first().click();
+    await page.waitForTimeout(500);
 
----
+    if (await page.getByRole('button', { name: /ใช่.*ลบเลย/i }).isVisible({ timeout: 5000 }).catch(() => false)) {
+      await page.getByRole('button', { name: /ใช่.*ลบเลย/i }).click();
+      await page.waitForTimeout(1000);
 
-### 📄 4.4 การเชื่อมต่อใน `playwright.config.js`
-ไฟล์คอนฟิกหลักจะผูกไฟล์ทั้งหมดเข้าด้วยกัน:
+      if (await page.getByRole('button', { name: 'OK' }).isVisible({ timeout: 4000 }).catch(() => false)) {
+        await page.getByRole('button', { name: 'OK' }).click();
+        await page.waitForTimeout(500);
+      }
+      return true;
+    }
+  }
+  return false;
+}
 
-```javascript
-module.exports = defineConfig({
-  testDir: './tests',
-  timeout: 60000,
-  
-  // 🔗 1. ผูก Global Setup (ทำงานก่อนรัน)
-  globalSetup: require.resolve('./global-setup.js'),
+/**
+ * 📝 3. เคลียร์แท็บ "แบบร่าง" (Drafts)
+ */
+async function cleanDrafts(page) {
+  await page.goto(`${APP_URL}/profile`);
+  await page.waitForLoadState('domcontentloaded');
 
-  // 🔗 2. ผูก Global Teardown (ทำงานหลังรันเสร็จ)
-  globalTeardown: require.resolve('./global-teardown.js'),
+  if (await page.getByRole('button', { name: /แบบร่าง/i }).isVisible({ timeout: 3000 }).catch(() => false)) {
+    await page.getByRole('button', { name: /แบบร่าง/i }).click();
+    await page.waitForTimeout(1500);
 
-  use: {
-    baseURL: 'https://share-ed-frontend-gamma.vercel.app',
-    
-    // 🔗 3. ให้ทุกการทดสอบใช้ Session ล็อกอินที่บันทึกไว้ใน user.json อัตโนมัติ
-    storageState: './playwright/.auth/user.json',
-    
-    trace: 'retain-on-failure',
-    screenshot: 'only-on-failure',
-  },
-});
+    for (let i = 0; i < 5; i++) {
+      const hasDraft = await page.getByRole('button', { name: 'แก้ไขโพสต์' }).first().waitFor({ state: 'visible', timeout: 4000 }).then(() => true).catch(() => false);
+      if (!hasDraft) break;
+
+      console.log(`🧹 [Cleanup] พบแบบร่างที่ ${i + 1} -> กำลังลบ...`);
+      await page.getByRole('button', { name: 'แก้ไขโพสต์' }).first().click();
+      await page.waitForLoadState('domcontentloaded');
+
+      await deleteCurrentOpenPost(page);
+      console.log(`✅ [Cleanup] ลบแบบร่างที่ ${i + 1} สำเร็จ`);
+
+      await page.goto(`${APP_URL}/profile`);
+      await page.getByRole('button', { name: /แบบร่าง/i }).click();
+      await page.waitForTimeout(1500);
+    }
+  }
+}
+
+/**
+ * 📰 4. เคลียร์แท็บ "โพสต์ของฉัน" (My Posts)
+ */
+async function cleanMyPosts(page) {
+  await page.goto(`${APP_URL}/profile`);
+  await page.waitForLoadState('domcontentloaded');
+
+  if (await page.getByRole('button', { name: /โพสต์ของฉัน/i }).isVisible({ timeout: 3000 }).catch(() => false)) {
+    await page.getByRole('button', { name: /โพสต์ของฉัน/i }).click();
+    await page.waitForTimeout(1500);
+
+    for (let i = 0; i < 5; i++) {
+      const hasPost = await page.locator('.grid h3, .grid h4, a[href*="/post/"]').first().waitFor({ state: 'visible', timeout: 4000 }).then(() => true).catch(() => false);
+      if (!hasPost) break;
+
+      console.log(`🧹 [Cleanup] พบโพสต์ที่ ${i + 1} -> กำลังลบ...`);
+      await page.locator('.grid h3, .grid h4, a[href*="/post/"]').first().click();
+      await page.waitForLoadState('domcontentloaded');
+
+      await deleteCurrentOpenPost(page);
+      console.log(`✅ [Cleanup] ลบโพสต์ที่ ${i + 1} สำเร็จ`);
+
+      await page.goto(`${APP_URL}/profile`);
+      await page.getByRole('button', { name: /โพสต์ของฉัน/i }).click();
+      await page.waitForTimeout(1500);
+    }
+  }
+}
+
+/**
+ * 🧹 5. ฟังก์ชันหลักสำหรับเคลียร์ทั้งหมด
+ */
+async function cleanAllUserPostsAndDrafts(page) {
+  try {
+    console.log('🧹 [Cleanup] กำลังตรวจสอบและเคลียร์ข้อมูลใน Profile...');
+    await cleanDrafts(page);
+    await cleanMyPosts(page);
+  } catch (error) {
+    console.error('⚠️ [Cleanup Error]:', error);
+  }
+}
+
+module.exports = {
+  APP_URL,
+  loginUser,
+  deleteCurrentOpenPost,
+  cleanDrafts,
+  cleanMyPosts,
+  cleanAllUserPostsAndDrafts,
+};
 ```
 
 ---
@@ -365,6 +436,9 @@ await expect(page.getByText('ข้อความที่ต้องการ
 ```javascript
 // ปุ่มทั่วไป
 await page.getByRole('button', { name: 'บันทึกและโพสต์' }).click();
+
+// ปุ่มยืนยันลบด้วย Regex
+await page.getByRole('button', { name: /ใช่.*ลบเลย/i }).click();
 
 // ช่องกรอกข้อความ
 await page.getByRole('textbox', { name: 'อีเมล' }).fill('user@gmail.com');
