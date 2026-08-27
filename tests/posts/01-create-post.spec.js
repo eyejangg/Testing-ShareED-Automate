@@ -13,7 +13,6 @@ test.beforeEach(async () => {
 });
 
 
-
 test.describe('Scenario 2.1: ผู้ใช้งานสามารถสร้างและเผยแพร่โพสต์ใหม่', () => {
 
   test('[Positive] TC-POST-01: สร้างโพสต์ด้วยข้อมูลที่ถูกต้องครบถ้วน', async ({ page }) => {
@@ -178,11 +177,15 @@ test.describe('Scenario 2.3: ผู้ใช้งานสามารถแก
 
     // 1. ไปยังหน้าโปรไฟล์
     await page.goto('/profile');
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(1000);
 
     // 2. กดปุ่มแท็บ "โพสต์ของฉัน"
     await page.getByRole('button', { name: /โพสต์ของฉัน/i }).click();
+    await page.waitForTimeout(1500);
 
     // 3. คลิกเข้าสู่หน้ารายละเอียดโพสต์ของตนเองจากชื่อโพสต์
+    await page.getByText(targetPostTitle).first().scrollIntoViewIfNeeded();
     await page.getByText(targetPostTitle).first().click();
 
     // 4. กดปุ่ม "แก้ไขโพสต์"
