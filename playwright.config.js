@@ -1,11 +1,17 @@
 // @ts-check
-import { defineConfig, devices } from '@playwright/test';
+const { defineConfig, devices } = require('@playwright/test');
+const path = require('path');
 
 /**
  * @see https://playwright.dev/docs/test-configuration
  */
-export default defineConfig({
+module.exports = defineConfig({
   testDir: './tests',
+
+  /* 📌 กำหนด Global Setup และ Global Teardown */
+  globalSetup: require.resolve('./global-setup.js'),
+  globalTeardown: require.resolve('./global-teardown.js'),
+
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
@@ -19,7 +25,10 @@ export default defineConfig({
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('')`. */
-    // baseURL: 'http://localhost:3000',
+    baseURL: 'https://share-ed-frontend-gamma.vercel.app',
+
+    /* 📌 โหลด Session Authentication จาก Global Setup มาใช้โดยอัตโนมัติ */
+    storageState: path.join(__dirname, 'playwright/.auth/user.json'),
 
     /* Collect trace for all tests. See https://playwright.dev/docs/trace-viewer */
     trace: 'on',
@@ -37,20 +46,5 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
-
-    // {
-    //   name: 'Edge',
-    //   use: { ...devices['Desktop Edge'] },
-    // },
-
-    // {
-    //   name: 'firefox',
-    //   use: { ...devices['Desktop Firefox'] },
-    // },
-
-    // {
-    //   name: 'webkit',
-    //   use: { ...devices['Desktop Safari'] },
-    // },
   ],
 });
