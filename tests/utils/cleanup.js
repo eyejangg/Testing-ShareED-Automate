@@ -36,7 +36,7 @@ async function confirmAndDelete(page) {
     await page.waitForTimeout(500);
 
     // 2. กดยืนยันในหน้าต่างแจ้งเตือน -> "ใช่, ลบเลย"
-    const confirmBtn = page.getByRole('button', { name: 'ใช่, ลบเลย' });
+    const confirmBtn = page.getByRole('button', { name: /ใช่.*ลบเลย/i });
     await confirmBtn.waitFor({ state: 'visible', timeout: 5000 }).catch(() => { });
     
     if (await confirmBtn.isVisible().catch(() => false)) {
