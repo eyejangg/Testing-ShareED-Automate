@@ -10,9 +10,10 @@
 1. [ภาพรวมและสถาปัตยกรรมการทดสอบ (Architecture Overview)](#1-ภาพรวมและสถาปัตยกรรมการทดสอบ-architecture-overview)
 2. [สรุปสิ่งที่เราได้พัฒนาและปรับปรุงทั้งหมด (What We Have Done)](#2-สรุปสิ่งที่เราได้พัฒนาและปรับปรุงทั้งหมด-what-we-have-done)
 3. [รายละเอียด 8 Test Cases (Test Cases Breakdown)](#3-รายละเอียด-8-test-cases-test-cases-breakdown)
-4. [โครงสร้างไดเรกทอรีและไฟล์สำคัญ (Project Structure)](#4-โครงสร้างไดเรกทอรีและไฟล์สำคัญ-project-structure)
-5. [คู่มือคำสั่งที่ใช้งานบ่อย (Playwright Commands Cheatsheet)](#5-คู่มือคำสั่งที่ใช้งานบ่อย-playwright-commands-cheatsheet)
-6. [เทคนิคและ Best Practices ที่ใช้ในโปรเจกต์](#6-เทคนิคและ-best-practices-ที่ใช้ในโปรเจกต์)
+4. [เจาะลึกการอ่านโค้ดระบบ Session & Cleanup ที่เพิ่มเข้ามา (Code Deep Dive)](#4-เจาะลึกการอ่านโค้ดระบบ-session--cleanup-ที่เพิ่มเข้ามา-code-deep-dive)
+5. [โครงสร้างไดเรกทอรีและไฟล์สำคัญ (Project Structure)](#5-โครงสร้างไดเรกทอรีและไฟล์สำคัญ-project-structure)
+6. [คู่มือคำสั่งที่ใช้งานบ่อย (Playwright Commands Cheatsheet)](#6-คู่มือคำสั่งที่ใช้งานบ่อย-playwright-commands-cheatsheet)
+7. [เทคนิคและ Best Practices ที่ใช้ในโปรเจกต์](#7-เทคนิคและ-best-practices-ที่ใช้ในโปรเจกต์)
 
 ---
 
@@ -120,7 +121,176 @@ flowchart TD
 
 ---
 
-## 4. โครงสร้างไดเรกทอรีและไฟล์สำคัญ (Project Structure)
+## 4. เจาะลึกการอ่านโค้ดระบบ Session & Cleanup ที่เพิ่มเข้ามา (Code Deep Dive)
+
+ในโปรเจกต์นี้เรามี 3 ไฟล์หลักที่ทำงานเบื้องหลังเพื่อควบคุมให้ระบบทดสอบมีความเสถียรและสะอาด 100%:
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│ 1. global-setup.js   (ทำงานก่อนเริ่มรันเคสแรก)              │
+│    └─► loginUser() -> บันทึก Session -> cleanAll...()       │
+├─────────────────────────────────────────────────────────────┤
+│ 2. cleanup.js        (โมดูลฟังก์ชันอรรถประโยชน์)             │
+│    ├─► loginUser(page, email, password)                     │
+│    └─► cleanAllUserPostsAndDrafts(page)                     │
+├─────────────────────────────────────────────────────────────┤
+│ 3. global-teardown.js (ทำงานหลังรันครบทุกเคสจบ)              │
+│    └─► โหลด Session เดิม -> cleanAll...() คืน Clean State   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 📄 4.1 ไฟล์ `global-setup.js` (สคริปต์เตรียมความพร้อมก่อนรัน)
+ไฟล์นี้จะถูก Playwright เรียกทำงาน **อัตโนมัติ 1 ครั้งก่อนเริ่มการทดสอบทั้งหมด**
+
+```javascript
+// @ts-check
+const { chromium } = require('@playwright/test');
+const path = require('path');
+const fs = require('fs');
+const { loginUser, cleanAllUserPostsAndDrafts } = require('./tests/utils/cleanup');
+
+async function globalSetup(config) {
+  // 1. ตรวจสอบและสร้างโฟลเดอร์สำหรับเก็บ Session Auth (playwright/.auth/)
+  const authDir = path.join(__dirname, 'playwright/.auth');
+  if (!fs.existsSync(authDir)) {
+    fs.mkdirSync(authDir, { recursive: true });
+  }
+  const storageStatePath = path.join(authDir, 'user.json');
+
+  // 2. เปิด Browser จำลองแบบ Headless (ทำงานเงียบๆ เบื้องหลัง)
+  const browser = await chromium.launch({ headless: true });
+  const context = await browser.newContext();
+  const page = await context.newPage();
+
+  try {
+    // 3. ทำการล็อกอินเข้าสู่ระบบผ่านฟังก์ชัน loginUser()
+    await loginUser(page);
+
+    // 4. บันทึก Cookie / LocalStorage / Token เก็บลงไฟล์ user.json
+    await context.storageState({ path: storageStatePath });
+    console.log(`✅ [Global Setup] บันทึก Session สำเร็จที่: ${storageStatePath}`);
+
+    // 5. สั่งลบโพสต์และแบบร่างตกค้างในบัญชีออกให้หมด ก่อนเริ่มรันเคสแรก
+    await cleanAllUserPostsAndDrafts(page);
+    console.log('✅ [Global Setup] เคลียร์โพสต์และแบบร่างเดิมทั้งหมดเรียบร้อย พร้อมเริ่มรันชุดทดสอบ!\n');
+  } catch (error) {
+    console.error('⚠️ [Global Setup] เกิดข้อผิดพลาด:', error);
+  } finally {
+    // 6. ปิด Browser ของ Setup คืน Memory
+    await context.close().catch(() => {});
+    await browser.close().catch(() => {});
+  }
+}
+
+module.exports = globalSetup;
+```
+
+---
+
+### 📄 4.2 ไฟล์ `global-teardown.js` (สคริปต์เก็บกวาดข้อมูลหลังจบการทดสอบ)
+ไฟล์นี้จะถูก Playwright เรียกทำงาน **อัตโนมัติ 1 ครั้งหลังจากการทดสอบทั้งหมดสิ้นสุดลง** (ไม่ว่าจะผ่านหรือเฟล)
+
+```javascript
+// @ts-check
+const { chromium } = require('@playwright/test');
+const path = require('path');
+const fs = require('fs');
+const { cleanAllUserPostsAndDrafts } = require('./tests/utils/cleanup');
+
+async function globalTeardown(config) {
+  console.log('🧹 [Global Teardown] เริ่มต้นเก็บกวาดข้อมูลทดสอบทั้งหมดหลังจบการทดสอบ...');
+
+  const authFile = path.join(__dirname, 'playwright/.auth/user.json');
+  const browser = await chromium.launch({ headless: true });
+  
+  // 1. เปิด Browser โดยดึง Session ที่ล็อกอินค้างไว้จาก user.json มาใช้ทันที
+  const context = fs.existsSync(authFile) 
+    ? await browser.newContext({ storageState: authFile })
+    : await browser.newContext();
+    
+  const page = await context.newPage();
+
+  try {
+    // 2. เรียกฟังก์ชันเคลียร์ข้อมูล ลบแบบร่าง (Draft) และโพสต์ที่สร้างระหว่างเทสออกจนหมด
+    await cleanAllUserPostsAndDrafts(page);
+    console.log('✅ [Global Teardown] เก็บกวาดและลบข้อมูลทดสอบทั้งหมดเรียบร้อย คืน Clean State 100%!\n');
+  } catch (error) {
+    console.error('⚠️ [Global Teardown] เกิดข้อผิดพลาด:', error);
+  } finally {
+    // 3. ปิด Browser
+    await context.close().catch(() => {});
+    await browser.close().catch(() => {});
+  }
+}
+
+module.exports = globalTeardown;
+```
+
+---
+
+### 📄 4.3 ไฟล์ `tests/utils/cleanup.js` (โมดูลฟังก์ชันอรรถประโยชน์)
+ไฟล์นี้รวม 2 ฟังก์ชันหลักที่ใช้งานซ้ำในระบบ:
+
+#### 1) ฟังก์ชัน `loginUser(page, email, password)`
+* **หน้าที่:** เข้าสู่หน้าเว็บหลัก ตรวจสอบว่ามีปุ่ม "เข้าสู่ระบบ" หรือไม่ ถ้ามีให้กรอกอีเมลและรหัสผ่าน แล้วกดปุ่มเข้าสู่ระบบ พร้อมรอจนกว่าจะ Redirect เข้าหน้า `/home`
+```javascript
+async function loginUser(page, email = 'ptwptw1600@gmail.com', password = '_Eart1101') {
+  await page.goto(`${APP_URL}/`);
+
+  if (await page.getByRole('link', { name: 'เข้าสู่ระบบ' }).isVisible({ timeout: 3000 }).catch(() => false)) {
+    await page.getByRole('link', { name: 'เข้าสู่ระบบ' }).click();
+    await page.getByRole('textbox', { name: 'อีเมล' }).fill(email);
+    await page.getByRole('textbox', { name: 'รหัสผ่าน' }).fill(password);
+    await page.getByRole('button', { name: 'เข้าสู่ระบบ', exact: true }).click();
+    await page.waitForURL(/.*home/, { timeout: 15000 }).catch(() => { });
+  }
+}
+```
+
+#### 2) ฟังก์ชัน `cleanAllUserPostsAndDrafts(page)`
+* **หน้าที่:** ไปยังหน้าโปรไฟล์ (`/profile`) เพื่อเคลียร์ข้อมูล 2 ส่วน:
+  1. **เคลียร์แท็บ "แบบร่าง" (Drafts):**
+     * คลิกแท็บ `แบบร่าง` ➔ ตรวจจับปุ่ม `แก้ไขโพสต์` (รอ API โหลดด้วย `.waitFor({ state: 'visible' })`)
+     * เข้าไปหน้าแก้ไขแบบร่าง ➔ กดปุ่ม `ลบโพสต์` ➔ กดยืนยันปุ่มสีแดง `ใช่, ลบเลย` ➔ กด `OK`
+     * วนลูปจนกระทั่งไม่พบแบบร่างเหลืออยู่ (`break`)
+  2. **เคลียร์แท็บ "โพสต์ของฉัน" (My Posts):**
+     * คลิกแท็บ `โพสต์ของฉัน` ➔ ตรวจจับการ์ดโพสต์
+     * คลิกเข้าไปที่หน้ารายละเอียดโพสต์ ➔ กดปุ่ม `ลบโพสต์` ➔ กดยืนยัน `ใช่, ลบเลย` ➔ กด `OK`
+     * วนลูปจนกระทั่งไม่มีโพสต์เหลืออยู่ในแท็บ
+
+---
+
+### 📄 4.4 การเชื่อมต่อใน `playwright.config.js`
+ไฟล์คอนฟิกหลักจะผูกไฟล์ทั้งหมดเข้าด้วยกัน:
+
+```javascript
+module.exports = defineConfig({
+  testDir: './tests',
+  timeout: 60000,
+  
+  // 🔗 1. ผูก Global Setup (ทำงานก่อนรัน)
+  globalSetup: require.resolve('./global-setup.js'),
+
+  // 🔗 2. ผูก Global Teardown (ทำงานหลังรันเสร็จ)
+  globalTeardown: require.resolve('./global-teardown.js'),
+
+  use: {
+    baseURL: 'https://share-ed-frontend-gamma.vercel.app',
+    
+    // 🔗 3. ให้ทุกการทดสอบใช้ Session ล็อกอินที่บันทึกไว้ใน user.json อัตโนมัติ
+    storageState: './playwright/.auth/user.json',
+    
+    trace: 'retain-on-failure',
+    screenshot: 'only-on-failure',
+  },
+});
+```
+
+---
+
+## 5. โครงสร้างไดเรกทอรีและไฟล์สำคัญ (Project Structure)
 
 ```text
 Testing-ShareED-Automate/
@@ -154,7 +324,7 @@ Testing-ShareED-Automate/
 
 ---
 
-## 5. คู่มือคำสั่งที่ใช้งานบ่อย (Playwright Commands Cheatsheet)
+## 6. คู่มือคำสั่งที่ใช้งานบ่อย (Playwright Commands Cheatsheet)
 
 ### 🖥️ คำสั่งรันผ่าน Terminal (CLI Commands)
 
@@ -180,7 +350,7 @@ npx.cmd playwright codegen https://share-ed-frontend-gamma.vercel.app/
 
 ---
 
-## 6. เทคนิคและ Best Practices ที่ใช้ในโปรเจกต์
+## 7. เทคนิคและ Best Practices ที่ใช้ในโปรเจกต์
 
 ### 1. การเลื่อนหน้าจอลงไปมององค์ประกอบ (`scrollIntoViewIfNeeded`)
 ช่วยแก้ปัญหาองค์ประกอบที่อยู่ด้านล่างของหน้าจอ หรืออยู่นอก Viewport:
