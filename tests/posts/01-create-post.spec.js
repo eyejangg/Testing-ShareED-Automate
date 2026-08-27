@@ -12,6 +12,8 @@ test.beforeEach(async () => {
   test.setTimeout(60000);
 });
 
+
+
 test.describe('Scenario 2.1: ผู้ใช้งานสามารถสร้างและเผยแพร่โพสต์ใหม่', () => {
 
   test('[Positive] TC-POST-01: สร้างโพสต์ด้วยข้อมูลที่ถูกต้องครบถ้วน', async ({ page }) => {
@@ -84,7 +86,7 @@ test.describe('Scenario 2.1: ผู้ใช้งานสามารถสร
     await expect(page.getByText(/สรุปไวยากรณ์ภาษาอังกฤษ A–Z/i).first()).toBeVisible({ timeout: 15000 });
   });
 
-  test('[Negative] TC-POST-02: การสร้างโพสต์เมื่อข้อมูลช่องที่บังคับไม่ครบ', async ({ page }) => {
+  test('[Negative] TC-POST-02: การสร้างโพสต์เมื่อข้อมูลช่องที่บังคับไม่ครบ', async ({ page }) => { // ขาด แท็ค 
     // 1. เข้าสู่หน้าแรก (ใช้ Session จาก Global Setup)
     await page.goto('/home');
     await page.waitForLoadState('domcontentloaded');
@@ -358,4 +360,3 @@ test.describe('Scenario 2.6: ระบบไม่อนุญาตให้แ
   });
 
 });
-
