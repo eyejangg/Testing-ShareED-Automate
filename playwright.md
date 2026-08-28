@@ -1,4 +1,4 @@
-# 🎭 คู่มือและสถาปัตยกรรมระบบทดสอบอัตโนมัติ (Playwright Comprehensive Guide)
+# 🎭 คู่มือและสถาปัตยกรรมระบบทดสอบอัตโนมัติ (Playwright Automation Guide)
 
 > **โปรเจกต์:** Testing-ShareED-Automate  
 > **เป้าหมาย:** ชุดทดสอบอัตโนมัติระดับ End-to-End สำหรับระบบจัดการโพสต์สรุปความรู้ (Post Management - User Story 02)  
@@ -8,21 +8,22 @@
 ---
 
 ## 📑 สารบัญ (Table of Contents)
-1. [ภาพรวมและสถาปัตยกรรมการทดสอบ (Test Architecture & Lifecycle)](#1-ภาพรวมและสถาปัตยกรรมการทดสอบ-test-architecture--lifecycle)
-2. [เจาะลึกการทำงานของแต่ละไฟล์ (File-by-File Detailed Explanation)](#2-เจาะลึกการทำงานของแต่ละไฟล์-file-by-file-detailed-explanation)
-   - [2.1 `playwright.config.js` (ศูนย์กลางการตั้งค่าระบบ)](#21-playwrightconfigjs-ศูนย์กลางการตั้งค่าระบบ)
-   - [2.2 `global-setup.js` (สคริปต์เตรียม Session ก่อนเริ่มรัน)](#22-global-setupjs-สคริปต์เตรียม-session-ก่อนเริ่มรัน)
-   - [2.3 `global-teardown.js` (สคริปต์เก็บกวาดข้อมูลหลังรันเสร็จ)](#23-global-teardownjs-สคริปต์เก็บกวาดข้อมูลหลังรันเสร็จ)
-   - [2.4 `tests/utils/cleanup.js` (โมดูลฟังก์ชันอรรถประโยชน์และลบข้อมูล)](#24-testsutilscleanupjs-โมดูลฟังก์ชันอรรถประโยชน์และลบข้อมูล)
-   - [2.5 `tests/posts/01-create-post.spec.js` (ชุดทดสอบหลัก 8 Test Cases)](#25-testsposts01-create-postspecjs-ชุดทดสอบหลัก-8-test-cases)
-3. [รายละเอียด 8 Test Cases แบบเจาะลึก (8 Test Cases Deep Dive)](#3-รายละเอียด-8-test-cases-แบบเจาะลึก-8-test-cases-deep-dive)
-4. [โครงสร้างไดเรกทอรีและไฟล์ทั้งหมด (Project Structure)](#4-โครงสร้างไดเรกทอรีและไฟล์ทั้งหมด-project-structure)
-5. [คู่มือคำสั่งใช้งานและส่งออกผลการทดสอบ (CLI & Export Guide)](#5-คู่มือคำสั่งใช้งานและส่งออกผลการทดสอบ-cli--export-guide)
-6. [แนวทางปฏิบัติที่ดีที่สุดที่นำมาใช้ (Best Practices Applied)](#6-แนวทางปฏิบัติที่ดีที่สุดที่นำมาใช้-best-practices-applied)
+1. [ภาพรวมและสถาปัตยกรรมการทดสอบ (Architecture & Lifecycle)](#1-ภาพรวมและสถาปัตยกรรมการทดสอบ-architecture--lifecycle)
+2. [สรุปสิ่งที่เราได้พัฒนาและปรับปรุงทั้งหมด (What We Have Done)](#2-สรุปสิ่งที่เราได้พัฒนาและปรับปรุงทั้งหมด-what-we-have-done)
+3. [เจาะลึก 8 Test Cases (8 Test Cases Deep Dive)](#3-เจาะลึก-8-test-cases-8-test-cases-deep-dive)
+4. [เจาะลึกโครงสร้างโค้ดและการทำงานแต่ละไฟล์ (Code Deep Dive)](#4-เจาะลึกโครงสร้างโค้ดและการทำงานแต่ละไฟล์-code-deep-dive)
+   - [4.1 `playwright.config.js` (ศูนย์กลางการตั้งค่าระบบ)](#41-playwrightconfigjs-ศูนย์กลางการตั้งค่าระบบ)
+   - [4.2 `global-setup.js` (สคริปต์เตรียม Session ก่อนเริ่มรัน)](#42-global-setupjs-สคริปต์เตรียม-session-ก่อนเริ่มรัน)
+   - [4.3 `global-teardown.js` (สคริปต์เก็บกวาดข้อมูลหลังรันเสร็จ)](#43-global-teardownjs-สคริปต์เก็บกวาดข้อมูลหลังรันเสร็จ)
+   - [4.4 `tests/utils/cleanup.js` (โมดูลล็อกอินและลบข้อมูล)](#44-testsutilscleanupjs-โมดูลล็อกอินและลบข้อมูล)
+   - [4.5 `tests/posts/01-create-post.spec.js` (ชุดทดสอบหลัก 8 เคส)](#45-testsposts01-create-postspecjs-ชุดทดสอบหลัก-8-เคส)
+5. [โครงสร้างไดเรกทอรีและไฟล์สำคัญ (Project Structure)](#5-โครงสร้างไดเรกทอรีและไฟล์สำคัญ-project-structure)
+6. [คู่มือคำสั่งใช้งานและส่งออกผลการทดสอบ (CLI & Export Guide)](#6-คู่มือคำสั่งใช้งานและส่งออกผลการทดสอบ-cli--export-guide)
+7. [เทคนิคและ Best Practices ที่นำมาใช้](#7-เทคนิคและ-best-practices-ที่นำมาใช้)
 
 ---
 
-## 1. ภาพรวมและสถาปัตยกรรมการทดสอบ (Test Architecture & Lifecycle)
+## 1. ภาพรวมและสถาปัตยกรรมการทดสอบ (Architecture & Lifecycle)
 
 การทดสอบในโปรเจกต์นี้ถูกออกแบบตามมาตรฐาน **Production-Grade Test Automation** โดยแบ่งวงจรชีวิตการทดสอบ (Test Lifecycle) ออกเป็น 3 ช่วงอย่างชัดเจน:
 
@@ -31,7 +32,7 @@ sequenceDiagram
     autonumber
     actor Playwright as 🎭 Playwright Engine
     participant Setup as 🚀 Global Setup
-    participant Auth as 💾 user.json (StorageState)
+    participant Auth as 💾 user.json (Session)
     participant Tests as 🧪 01-create-post.spec.js (8 Cases)
     participant Teardown as 🧹 Global Teardown
     participant Web as 🌐 ShareED Web Application
@@ -56,94 +57,21 @@ sequenceDiagram
 
 ---
 
-## 2. เจาะลึกการทำงานของแต่ละไฟล์ (File-by-File Detailed Explanation)
+## 2. สรุปสิ่งที่เราได้พัฒนาและปรับปรุงทั้งหมด (What We Have Done)
+
+| ลำดับ | สิ่งที่ได้ทำ | เหตุผลและผลลัพธ์ |
+|:---:|---|---|
+| **1** | **เปลี่ยนจาก TypeScript เป็น JavaScript (.js)** | ลดความซับซ้อนของ Build step รันได้เร็วและยืดหยุ่นขึ้นในสภาพแวดล้อมจริง |
+| **2** | **รวมชุดทดสอบเป็นไฟล์เดียว (`01-create-post.spec.js`)** | แก้ปัญหาข้อมูลขัดแย้งกัน (Data Race) และรันเรียงลำดับตาม User Journey จริง |
+| **3** | **พัฒนาระบบ Auto-Cleanup (`cleanup.js`)** | มีระบบลบทั้ง "แบบร่าง" และ "โพสต์ของฉัน" อัตโนมัติ ป้องกันข้อมูลขยะค้างใน Profile |
+| **4** | **ปรับแต่ง `TC-POST-04` (แก้ไขโพสต์ + แนบไฟล์ใหม่)** | รองรับการเปลี่ยนไฟล์ PDF (`แก้ไขโพสต์.pdf`) และรูปภาพประกอบ (`แก้ไข_ภาษาไทย.png`) อย่างถูกต้อง |
+| **5** | **เพิ่ม `TC-POST-06` (Positive Upload Validation)** | ทดสอบการอัปโหลดไฟล์นามสกุลที่ถูกต้อง (.png, .jpeg, .pdf) ให้ระบบอนุญาตและแสดงผล |
+| **6** | **เพิ่ม `.scrollIntoViewIfNeeded()` ทุกจุด** | เลื่อนหน้าจอลงไปมององค์ประกอบทุกตัวก่อนทำการ `expect(...).toBeVisible()` ป้องกัน Flaky Tests |
+| **7** | **ปรับแต่ง Selector แบบ Direct Chaining** | ใช้ `await page.getByRole('button', { name: /ใช่.*ลบเลย/i }).click()` แบบตรงๆ อ่านง่าย สบายตา |
 
 ---
 
-### 2.1 `playwright.config.js` (ศูนย์กลางการตั้งค่าระบบ)
-
-ไฟล์นี้เปรียบเสมือน **"สมองกลาง"** ของ Playwright ที่ควบคุมพฤติกรรมการทดสอบทั้งหมด:
-
-```javascript
-// @ts-check
-const { defineConfig, devices } = require('@playwright/test');
-const path = require('path');
-
-module.exports = defineConfig({
-  testDir: './tests',                     // โฟลเดอร์ที่เก็บไฟล์ทดสอบทั้งหมด
-  globalSetup: require.resolve('./global-setup.js'),       // 🔗 ผูกสคริปต์ก่อนเริ่มรัน
-  globalTeardown: require.resolve('./global-teardown.js'), // 🔗 ผูกสคริปต์หลังรันเสร็จ
-
-  fullyParallel: true,
-  reporter: 'html',                       // สร้างหน้ารายงานผลเป็น HTML Dashboard
-
-  use: {
-    baseURL: 'https://share-ed-frontend-gamma.vercel.app', // URL หลักของหน้าเว็บ
-    storageState: path.join(__dirname, 'playwright/.auth/user.json'), // 💾 ใช้ Session ล็อกอินอัตโนมัติ
-    trace: 'on',                          // 🔍 บันทึก Trace แบบละเอียดทุก Action
-    screenshot: 'on',                     // 📸 ถ่ายรูปหน้าจอทุก Test Case
-    video: 'on',                          // 🎥 บันทึกวิดีโอ .webm การทำงานทุก Test Case
-  },
-
-  projects: [
-    {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
-    },
-  ],
-});
-```
-
-* **หน้าที่สำคัญ:**
-  1. สั่งให้บันทึกภาพ (`screenshot: 'on'`) และวิดีโอ (`video: 'on'`) ของทุกเคสเพื่อนำไปพรีเซนต์
-  2. โหลด `user.json` เพื่อข้ามขั้นตอนการล็อกอินในทุกเคส ทำให้รันได้เร็วขึ้นกว่า 70%
-
----
-
-### 2.2 `global-setup.js` (สคริปต์เตรียม Session ก่อนเริ่มรัน)
-
-* **ตำแหน่งไฟล์:** [`global-setup.js`](file:///d:/AAA_TEST/Testing-ShareED-Automate/global-setup.js)
-* **การทำงาน:**
-  1. สร้างโฟลเดอร์ `playwright/.auth/` หากยังไม่มี
-  2. เปิดเบราว์เซอร์ Headless และเรียกใช้ `await loginUser(page)`
-  3. บันทึก Cookie / Token ลงไฟล์ `playwright/.auth/user.json`
-  4. สั่ง `await cleanAllUserPostsAndDrafts(page)` เพื่อล้างโพสต์หรือแบบร่างที่อาจค้างจากการรันครั้งก่อนหน้า คืน Clean State ก่อนเริ่มเคสแรก
-
----
-
-### 2.3 `global-teardown.js` (สคริปต์เก็บกวาดข้อมูลหลังรันเสร็จ)
-
-* **ตำแหน่งไฟล์:** [`global-teardown.js`](file:///d:/AAA_TEST/Testing-ShareED-Automate/global-teardown.js)
-* **การทำงาน:**
-  1. ทำงานอัตโนมัติทันทีหลังจากการทดสอบเคสสุดท้ายเสร็จสิ้น (ทำงาน 100% แม้ว่าเคสก่อนหน้าจะผ่านหรือพัง)
-  2. โหลด Session จาก `user.json`
-  3. เรียก `await cleanAllUserPostsAndDrafts(page)` เพื่อลบแบบร่าง (Draft) ที่สร้างขึ้นจาก TC-POST-03 และโพสต์ที่เหลือทิ้งจนหมดจด
-
----
-
-### 2.4 `tests/utils/cleanup.js` (โมดูลฟังก์ชันอรรถประโยชน์และลบข้อมูล)
-
-* **ตำแหน่งไฟล์:** [`tests/utils/cleanup.js`](file:///d:/AAA_TEST/Testing-ShareED-Automate/tests/utils/cleanup.js)
-* **ประกอบด้วย 2 ฟังก์ชันหลัก:**
-
-#### 1) `loginUser(page, email, password)`
-* กรอกอีเมลและรหัสผ่านเพื่อเข้าสู่ระบบ และรอจนกระทั่ง Redirect เข้าหน้า `/home`
-
-#### 2) `cleanAllUserPostsAndDrafts(page)`
-* เข้าสู่หน้า `/profile`
-* **ส่วนที่ 1 (เคลียร์แบบร่าง):** สลับแท็บ "แบบร่าง" ➔ วนลูปหาการ์ดแบบร่าง ➔ กดปุ่ม "แก้ไขโพสต์" ➔ กดปุ่ม "ลบโพสต์" ➔ กดยืนยันปุ่มสีแดง "ใช่, ลบเลย" ➔ กด "OK" ➔ ทำซ้ำจนหมด
-* **ส่วนที่ 2 (เคลียร์โพสต์):** สลับแท็บ "โพสต์ของฉัน" ➔ วนลูปหาการ์ดโพสต์ ➔ กดเข้าโพสต์ ➔ กดปุ่ม "ลบโพสต์" ➔ กดยืนยัน "ใช่, ลบเลย" ➔ กด "OK" ➔ ทำซ้ำจนหมด
-
----
-
-### 2.5 `tests/posts/01-create-post.spec.js` (ชุดทดสอบหลัก 8 Test Cases)
-
-* **ตำแหน่งไฟล์:** [`tests/posts/01-create-post.spec.js`](file:///d:/AAA_TEST/Testing-ShareED-Automate/tests/posts/01-create-post.spec.js)
-* **กำหนดโหมดการรัน:** `test.describe.configure({ mode: 'serial' });` เพื่อให้ทั้ง 8 เคสรันเรียงลำดับต่อเนื่องกันตาม User Journey จริง
-
----
-
-## 3. รายละเอียด 8 Test Cases แบบเจาะลึก (8 Test Cases Deep Dive)
+## 3. เจาะลึก 8 Test Cases (8 Test Cases Deep Dive)
 
 ```text
 ┌─────────────┬────────────────────────────────────────────────────────────────────────┬──────────┐
@@ -160,31 +88,337 @@ module.exports = defineConfig({
 └─────────────┴────────────────────────────────────────────────────────────────────────┴──────────┘
 ```
 
-### 🔹 Scenario 2.1: ผู้ใช้งานสามารถสร้างและเผยแพร่โพสต์ใหม่
-* **TC-POST-01 (Positive):** สร้างโพสต์ `สรุปไวยากรณ์ภาษาอังกฤษ A–Z` โดยกรอกข้อมูลครบทุกช่อง แนบรูปปก `Gemini-cover-engAZ.png`, แนบเอกสาร `สรุปข้อมูล.pdf`, และแนบรูปภาพประกอบ 2 รูป (`คำนาม.png`, `สระ.png`) ➔ ตรวจสอบแจ้งเตือน `โพสต์สำเร็จ!` และยืนยันว่าโพสต์แสดงบนหน้าแรก
-* **TC-POST-02 (Negative):** พยายามกดปุ่ม "โพสต์สรุปความรู้" โดยปล่อยว่างช่องบังคับ ➔ ตรวจสอบ Inline Error 3 จุด: `กรุณากรอกชื่อหัวข้อสรุปความรู้`, `กรุณาเลือกระดับชั้น`, `กรุณากรอกบทสรุปย่อ`
+### 📌 Scenario 2.1: ผู้ใช้งานสามารถสร้างและเผยแพร่โพสต์ใหม่
+* **[Positive] TC-POST-01: สร้างโพสต์ด้วยข้อมูลที่ถูกต้องครบถ้วน**
+  * **ขั้นตอน:** ล็อกอิน ➔ ไปหน้าสร้างโพสต์ ➔ กรอกชื่อเรื่อง, เลือกระดับชั้น, อัปโหลดรูปปก, กรอกบทสรุปย่อ, เลือกหมวดวิชาและแท็ก, กรอกเนื้อหา Rich Text, แนบไฟล์ PDF และรูปภาพประกอบ ➔ กด "โพสต์สรุปความรู้"
+  * **การตรวจสอบ (Assertion):** แสดงแจ้งเตือน `โพสต์สำเร็จ!` และพบการ์ดโพสต์บนหน้า Home/Explore
 
-### 🔹 Scenario 2.2: ผู้ใช้งานสามารถบันทึกโพสต์เป็นแบบร่าง
-* **TC-POST-03 (Positive):** กรอกข้อมูลครบถ้วนแล้วกดปุ่ม "บันทึกแบบร่าง" ➔ ตรวจสอบแจ้งเตือน `บันทึกสำเร็จ!` ➔ ไปที่หน้า Profile แท็บ "แบบร่าง" เพื่อยืนยันว่ามีแบบร่างแสดงอยู่จริง
-
-### 🔹 Scenario 2.3: ผู้ใช้งานสามารถแก้ไขโพสต์ของตนเอง
-* **TC-POST-04 (Positive):** เข้าสู่โพสต์จาก TC-POST-01 ➔ กด "แก้ไขโพสต์" ➔ อัปเดตคำอธิบายย่อและเนื้อหา ➔ แนบเอกสารใหม่ `แก้ไขโพสต์.pdf` ➔ แนบรูปภาพใหม่ `แก้ไข_ภาษาไทย.png` ➔ กดบันทึก ➔ ตรวจสอบแจ้งเตือน `บันทึกการแก้ไขสำเร็จ!` และตรวจความถูกต้องของข้อมูลใหม่
-
-### 🔹 Scenario 2.4: ผู้ใช้งานสามารถลบโพสต์ของตนเองได้สำเร็จ
-* **TC-POST-05 (Positive):** เข้าสู่โพสต์ของตนเอง ➔ กดปุ่ม "ลบโพสต์" ➔ กดยืนยันปุ่มสีแดง "ใช่, ลบเลย" ➔ กด "OK" ➔ ตรวจสอบ Modal `ลบสำเร็จ!` และตรวจสอบว่าชื่อโพสต์ถูกถอนออกจากระบบ (`toBeHidden()`)
-
-### 🔹 Scenario 2.5: ตรวจสอบประเภทไฟล์ที่ระบบรองรับและไม่รองรับ
-* **TC-POST-06 (Positive):** อัปโหลดไฟล์ประเภทที่ถูกต้องตามข้อกำหนด (`.png`, `.jpeg`, `.pdf`) ➔ ระบบอนุญาตให้อัปโหลดได้สำเร็จ ไม่มีข้อความแจ้งเตือนปฏิเสธ
-* **TC-POST-07 (Negative):** พยายามอัปโหลดไฟล์ผิดประเภท (`.gif` ที่รูปภาพ, `.docx` ที่ช่อง PDF) ➔ ตรวจสอบข้อความแจ้งเตือน:
-  * `สามารถอัปโหลดไฟล์ .jpg,.jpeg,.png เท่านั้น`
-  * `สามารถอัปโหลดไฟล์ .pdf เท่านั้น`
-
-### 🔹 Scenario 2.6: สิทธิ์การเข้าถึงข้อมูล (Authorization)
-* **TC-POST-08 (Negative):** เข้าไปยังหน้ารายละเอียดโพสต์ของ Member B ➔ ตรวจสอบว่าไม่มีปุ่ม "แก้ไขโพสต์" หรือ "ลบโพสต์" ➔ พยายามเข้าผ่าน URL แก้ไขโดยตรง (`/post/edit/:otherUserPostId`) ➔ ตรวจสอบการแจ้งเตือน `คุณไม่มีสิทธิ์แก้ไขโพสต์ของผู้อื่น`
+* **[Negative] TC-POST-02: การสร้างโพสต์เมื่อข้อมูลช่องที่บังคับไม่ครบ**
+  * **ขั้นตอน:** เข้าหน้าสร้างโพสต์ ➔ กดปุ่ม "โพสต์สรุปความรู้" โดยปล่อยว่างข้อมูลบังคับ
+  * **การตรวจสอบ (Assertion):** แสดงข้อความ Inline Error ทั้ง 3 จุด:
+    * `กรุณากรอกชื่อหัวข้อสรุปความรู้`
+    * `กรุณาเลือกระดับชั้น`
+    * `กรุณากรอกบทสรุปย่อ`
 
 ---
 
-## 4. โครงสร้างไดเรกทอรีและไฟล์ทั้งหมด (Project Structure)
+### 📌 Scenario 2.2: ผู้ใช้งานสามารถบันทึกโพสต์เป็นแบบร่าง
+* **[Positive] TC-POST-03: การบันทึกโพสต์ฉบับร่างเมื่อข้อมูลช่องที่บังคับครบถ้วน**
+  * **ขั้นตอน:** กรอกข้อมูลโพสต์ ➔ กดปุ่ม "บันทึกแบบร่าง" ➔ กด "OK" บนแจ้งเตือน
+  * **การตรวจสอบ (Assertion):** ไปที่หน้า Profile ➔ เลือกแท็บ "แบบร่าง" ➔ พบการ์ดแบบร่างที่บันทึกไว้
+
+---
+
+### 📌 Scenario 2.3: ผู้ใช้งานสามารถแก้ไขโพสต์ของตนเอง
+* **[Positive] TC-POST-04: ผู้ใช้งานสามารถแก้ไขโพสต์ของตนเอง**
+  * **ขั้นตอน:** เข้าหน้า Profile ➔ คลิกโพสต์ที่สร้างจาก TC-01 ➔ กด "แก้ไขโพสต์" ➔ อัปเดตคำอธิบายย่อ, เนื้อหาละเอียด, ลบไฟล์ PDF เดิมและแนบ `แก้ไขโพสต์.pdf`, แนบรูปภาพ `แก้ไข_ภาษาไทย.png` ➔ กด "บันทึกและโพสต์"
+  * **การตรวจสอบ (Assertion):** 
+    * กล่องอัปโหลดแสดงชื่อ `แก้ไขโพสต์.pdf`
+    * แสดงแจ้งเตือน `บันทึกการแก้ไขสำเร็จ!`
+    * หน้ารายละเอียดแสดงชื่อเรื่อง, บทสรุปย่อ และเนื้อหาที่อัปเดตใหม่ตรงตามที่แก้
+
+---
+
+### 📌 Scenario 2.4: ผู้ใช้งานสามารถลบโพสต์ของตนเองได้สำเร็จ
+* **[Positive] TC-POST-05: ผู้ใช้งานสามารถลบโพสต์ของตนเองได้สำเร็จ**
+  * **ขั้นตอน:** เข้าหน้า Profile ➔ คลิกโพสต์จาก TC-04 ➔ กดปุ่ม "ลบโพสต์" ➔ กดยืนยัน "ใช่, ลบเลย" ➔ กดปุ่ม "OK"
+  * **โค้ดที่ใช้งาน (Direct Chaining):**
+    ```javascript
+    await page.getByRole('button', { name: /ใช่.*ลบเลย/i }).scrollIntoViewIfNeeded();
+    await expect(page.getByRole('button', { name: /ใช่.*ลบเลย/i })).toBeVisible({ timeout: 10000 });
+    await page.getByRole('button', { name: /ใช่.*ลบเลย/i }).click();
+    ```
+  * **การตรวจสอบ (Assertion):**
+    * แสดง Modal หัวข้อ `ลบสำเร็จ!` และข้อความ `โพสต์ของคุณถูกลบเรียบร้อยแล้ว`
+    * ชื่อโพสต์ดังกล่าวถูกถอนออกจากระบบและมองไม่เห็นอีกต่อไป (`toBeHidden()`)
+
+---
+
+### 📌 Scenario 2.5: ตรวจสอบประเภทไฟล์ที่ระบบรองรับและไม่รองรับ
+* **[Positive] TC-POST-06: อัพโหลด ไฟล์ประเภทที่ ระบบรองรับ (PNG, JPEG, PDF)**
+  * **ขั้นตอน:** เข้าหน้าสร้างโพสต์ ➔ แนบรูปปก (.png) ➔ แนบเอกสาร (.pdf) ➔ แนบรูปภาพประกอบ (.png)
+  * **การตรวจสอบ (Assertion):** ชื่อไฟล์เอกสารแสดงขึ้นมา และไม่มีข้อความแจ้งเตือน Error เรื่องประเภทไฟล์
+
+* **[Negative] TC-POST-07: อัพโหลด ไฟล์ประเภทที่ ระบบไม่รองรับ (.DOCX หรือ .GIF)**
+  * **ขั้นตอน:** พยายามแนบไฟล์ `.gif` ที่รูปปก, แนบไฟล์ `.docx` ที่ช่อง PDF, แนบไฟล์ `.gif` ที่รูปภาพประกอบ
+  * **การตรวจสอบ (Assertion):** แสดงแจ้งเตือนปฏิเสธไฟล์:
+    * `สามารถอัปโหลดไฟล์ .jpg,.jpeg,.png เท่านั้น` (ที่ช่องรูปปกและรูปภาพ)
+    * `สามารถอัปโหลดไฟล์ .pdf เท่านั้น` (ที่ช่องเอกสาร PDF)
+
+---
+
+### 📌 Scenario 2.6: ระบบไม่อนุญาตให้แก้ไขหรือลบโพสต์ของบุคคลอื่น
+* **[Negative] TC-POST-08: ระบบไม่อนุญาตให้แก้ไขหรือลบโพสต์ของบุคคลอื่น**
+  * **ขั้นตอน:** เข้าไปยังหน้ารายละเอียดโพสต์ของ Member B ➔ ตรวจสอบปุ่มแก้ไข/ลบ ➔ พยายามเข้าผ่าน URL แก้ไขโดยตรง (`/post/edit/:otherUserPostId`) ➔ กดบันทึก
+  * **การตรวจสอบ (Assertion):**
+    * ที่หน้ารายละเอียดโพสต์ของผู้อื่น ไม่มีปุ่ม "แก้ไขโพสต์" และ "ลบโพสต์" แสดงขึ้นมา
+    * เมื่อพยายามยิง URL แก้ไข ระบบแสดงแจ้งเตือน `คุณไม่มีสิทธิ์แก้ไขโพสต์ของผู้อื่น`
+
+---
+
+## 4. เจาะลึกโครงสร้างโค้ดและการทำงานแต่ละไฟล์ (Code Deep Dive)
+
+---
+
+### 4.1 `playwright.config.js` (ศูนย์กลางการตั้งค่าระบบ)
+
+```javascript
+// @ts-check
+const { defineConfig, devices } = require('@playwright/test');
+const path = require('path');
+
+module.exports = defineConfig({
+  testDir: './tests',
+  globalSetup: require.resolve('./global-setup.js'),
+  globalTeardown: require.resolve('./global-teardown.js'),
+
+  fullyParallel: true,
+  reporter: 'html',
+
+  use: {
+    baseURL: 'https://share-ed-frontend-gamma.vercel.app',
+    storageState: path.join(__dirname, 'playwright/.auth/user.json'),
+    trace: 'on',
+    screenshot: 'on',
+    video: 'on',
+  },
+
+  projects: [
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
+    },
+  ],
+});
+```
+
+---
+
+### 4.2 `global-setup.js` (สคริปต์เตรียม Session ก่อนเริ่มรัน)
+
+```javascript
+// @ts-check
+const { chromium } = require('@playwright/test');
+const path = require('path');
+const fs = require('fs');
+const { loginUser, cleanAllUserPostsAndDrafts } = require('./tests/utils/cleanup');
+
+async function globalSetup(config) {
+  console.log('\n======================================================');
+  console.log('🚀 [Global Setup] เริ่มต้นเตรียมการและเคลียร์สถานะระบบ...');
+  console.log('======================================================');
+
+  const authDir = path.join(__dirname, 'playwright/.auth');
+  if (!fs.existsSync(authDir)) {
+    fs.mkdirSync(authDir, { recursive: true });
+  }
+
+  const storageStatePath = path.join(authDir, 'user.json');
+  const browser = await chromium.launch({ headless: true });
+  const context = await browser.newContext();
+  const page = await context.newPage();
+
+  try {
+    await loginUser(page);
+    await context.storageState({ path: storageStatePath });
+    console.log(`✅ [Global Setup] บันทึก Session สำเร็จที่: ${storageStatePath}`);
+
+    await cleanAllUserPostsAndDrafts(page);
+    console.log('✅ [Global Setup] เคลียร์โพสต์และแบบร่างเดิมทั้งหมดเรียบร้อย พร้อมเริ่มรันชุดทดสอบ!\n');
+  } catch (error) {
+    console.error('⚠️ [Global Setup] เกิดข้อผิดพลาด:', error);
+  } finally {
+    await context.close().catch(() => {});
+    await browser.close().catch(() => {});
+  }
+}
+
+module.exports = globalSetup;
+```
+
+---
+
+### 4.3 `global-teardown.js` (สคริปต์เก็บกวาดข้อมูลหลังรันเสร็จ)
+
+```javascript
+// @ts-check
+const { chromium } = require('@playwright/test');
+const path = require('path');
+const fs = require('fs');
+const { cleanAllUserPostsAndDrafts } = require('./tests/utils/cleanup');
+
+async function globalTeardown(config) {
+  console.log('\n======================================================');
+  console.log('🧹 [Global Teardown] เริ่มต้นเก็บกวาดข้อมูลทดสอบทั้งหมดหลังจบการทดสอบ...');
+  console.log('======================================================');
+
+  const authFile = path.join(__dirname, 'playwright/.auth/user.json');
+  const browser = await chromium.launch({ headless: true });
+  
+  const context = fs.existsSync(authFile) 
+    ? await browser.newContext({ storageState: authFile })
+    : await browser.newContext();
+    
+  const page = await context.newPage();
+
+  try {
+    await cleanAllUserPostsAndDrafts(page);
+    console.log('✅ [Global Teardown] เก็บกวาดและลบข้อมูลทดสอบทั้งหมดเรียบร้อย คืน Clean State 100%!\n');
+  } catch (error) {
+    console.error('⚠️ [Global Teardown] เกิดข้อผิดพลาด:', error);
+  } finally {
+    await context.close().catch(() => {});
+    await browser.close().catch(() => {});
+  }
+}
+
+module.exports = globalTeardown;
+```
+
+---
+
+### 4.4 `tests/utils/cleanup.js` (โมดูลล็อกอินและลบข้อมูล)
+
+```javascript
+// @ts-check
+const { Page } = require('@playwright/test');
+
+const APP_URL = 'https://share-ed-frontend-gamma.vercel.app';
+
+/**
+ * 🔑 ฟังก์ชันเข้าสู่ระบบด้วยบัญชีผู้ใช้
+ */
+async function loginUser(page, email = 'ptwptw1600@gmail.com', password = '_Eart1101') {
+  await page.goto(`${APP_URL}/`);
+
+  if (await page.getByRole('link', { name: 'เข้าสู่ระบบ' }).isVisible({ timeout: 3000 }).catch(() => false)) {
+    await page.getByRole('link', { name: 'เข้าสู่ระบบ' }).click();
+    await page.getByRole('textbox', { name: 'อีเมล' }).fill(email);
+    await page.getByRole('textbox', { name: 'รหัสผ่าน' }).fill(password);
+    await page.getByRole('button', { name: 'เข้าสู่ระบบ', exact: true }).click();
+    await page.waitForURL(/.*home/, { timeout: 15000 }).catch(() => { });
+  }
+}
+
+/**
+ * 🧹 ฟังก์ชันเคลียร์/ลบโพสต์และแบบร่างทั้งหมดในบัญชี
+ */
+async function cleanAllUserPostsAndDrafts(page) {
+  try {
+    console.log('🧹 [Cleanup] กำลังตรวจสอบและเคลียร์ข้อมูลใน Profile...');
+
+    // 1. เคลียร์แท็บ "แบบร่าง" (Drafts)
+    await page.goto(`${APP_URL}/profile`);
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(1000);
+
+    const draftTab = page.getByRole('button', { name: /แบบร่าง/i });
+    if (await draftTab.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await draftTab.click();
+      await page.waitForTimeout(1500);
+
+      for (let i = 0; i < 5; i++) {
+        const editDraftBtn = page.getByRole('button', { name: 'แก้ไขโพสต์' }).first();
+        const hasDraft = await editDraftBtn.waitFor({ state: 'visible', timeout: 4000 }).then(() => true).catch(() => false);
+        if (!hasDraft) break;
+
+        console.log(`🧹 [Cleanup] พบแบบร่างที่ ${i + 1} -> กำลังกดแก้ไขเพื่อลบ...`);
+        await editDraftBtn.click();
+        await page.waitForLoadState('domcontentloaded');
+        await page.waitForTimeout(1000);
+
+        const deleteBtn = page.getByRole('button', { name: 'ลบโพสต์' });
+        await deleteBtn.waitFor({ state: 'visible', timeout: 5000 }).catch(() => { });
+        if (await deleteBtn.isVisible().catch(() => false)) {
+          await deleteBtn.click();
+          await page.waitForTimeout(500);
+
+          const confirmBtn = page.getByRole('button', { name: 'ใช่, ลบเลย' });
+          await confirmBtn.waitFor({ state: 'visible', timeout: 5000 }).catch(() => { });
+          if (await confirmBtn.isVisible().catch(() => false)) {
+            await confirmBtn.click();
+            await page.waitForTimeout(1000);
+
+            const okBtn = page.getByRole('button', { name: 'OK' });
+            if (await okBtn.isVisible({ timeout: 4000 }).catch(() => false)) {
+              await okBtn.click();
+              await page.waitForTimeout(500);
+            }
+            console.log(`✅ [Cleanup] ลบแบบร่างที่ ${i + 1} สำเร็จ`);
+          }
+        }
+
+        await page.goto(`${APP_URL}/profile`);
+        await page.waitForLoadState('domcontentloaded');
+        await page.waitForTimeout(1000);
+        await page.getByRole('button', { name: /แบบร่าง/i }).click();
+        await page.waitForTimeout(1500);
+      }
+    }
+
+    // 2. เคลียร์แท็บ "โพสต์ของฉัน" (My Posts)
+    await page.goto(`${APP_URL}/profile`);
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(1000);
+
+    const myPostsTab = page.getByRole('button', { name: /โพสต์ของฉัน/i });
+    if (await myPostsTab.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await myPostsTab.click();
+      await page.waitForTimeout(1500);
+
+      for (let i = 0; i < 5; i++) {
+        const myPostCard = page.locator('.grid h3, .grid h4, a[href*="/post/"]').first();
+        const hasPost = await myPostCard.waitFor({ state: 'visible', timeout: 4000 }).then(() => true).catch(() => false);
+        if (!hasPost) break;
+
+        console.log(`🧹 [Cleanup] พบโพสต์ที่ ${i + 1} -> กำลังกดเข้าเพื่อลบ...`);
+        await myPostCard.click();
+        await page.waitForLoadState('domcontentloaded');
+        await page.waitForTimeout(1000);
+
+        const deletePostBtn = page.locator('button:has-text("ลบโพสต์"), button:has-text("ลบ"), a:has-text("ลบโพสต์")').first();
+        await deletePostBtn.waitFor({ state: 'visible', timeout: 5000 }).catch(() => { });
+        if (await deletePostBtn.isVisible().catch(() => false)) {
+          await deletePostBtn.click();
+          await page.waitForTimeout(500);
+
+          const confirmPostBtn = page.getByRole('button', { name: 'ใช่, ลบเลย' });
+          await confirmPostBtn.waitFor({ state: 'visible', timeout: 5000 }).catch(() => { });
+          if (await confirmPostBtn.isVisible().catch(() => false)) {
+            await confirmPostBtn.click();
+            await page.waitForTimeout(1000);
+
+            const okPostBtn = page.getByRole('button', { name: 'OK' });
+            if (await okPostBtn.isVisible({ timeout: 4000 }).catch(() => false)) {
+              await okPostBtn.click();
+              await page.waitForTimeout(500);
+            }
+            console.log(`✅ [Cleanup] ลบโพสต์ที่ ${i + 1} สำเร็จ`);
+          }
+        }
+
+        await page.goto(`${APP_URL}/profile`);
+        await page.waitForLoadState('domcontentloaded');
+        await page.waitForTimeout(1000);
+        await page.getByRole('button', { name: /โพสต์ของฉัน/i }).click();
+        await page.waitForTimeout(1500);
+      }
+    }
+  } catch (error) {
+    console.error('⚠️ [Cleanup Error]:', error);
+  }
+}
+
+module.exports = {
+  APP_URL,
+  loginUser,
+  cleanAllUserPostsAndDrafts,
+};
+```
+
+---
+
+## 5. โครงสร้างไดเรกทอรีและไฟล์สำคัญ (Project Structure)
 
 ```text
 Testing-ShareED-Automate/
@@ -192,6 +426,7 @@ Testing-ShareED-Automate/
 ├── global-teardown.js              # 🧹 กวาดล้างข้อมูลทดสอบทั้งหมดหลังรันเสร็จ
 ├── playwright.config.js            # ⚙️ การตั้งค่าระบบ (Timeout, Reporters, Video, Traces)
 ├── playwright.md                   # 📚 เอกสารคู่มือฉบับสมบูรณ์ (ไฟล์นี้)
+├── README.md                       # 📄 เอกสารหน้าหลักของ Repository
 │
 ├── test-data/                      # 📁 แหล่งรวมไฟล์สื่อที่ใช้ทดสอบจริง
 │   ├── files/
@@ -221,7 +456,7 @@ Testing-ShareED-Automate/
 
 ---
 
-## 5. คู่มือคำสั่งใช้งานและส่งออกผลการทดสอบ (CLI & Export Guide)
+## 6. คู่มือคำสั่งใช้งานและส่งออกผลการทดสอบ (CLI & Export Guide)
 
 ### 🖥️ คำสั่งรันทดสอบ
 ```powershell
@@ -248,7 +483,7 @@ Compress-Archive -Path playwright-report, test-results -DestinationPath Playwrig
 
 ---
 
-## 6. แนวทางปฏิบัติที่ดีที่สุดที่นำมาใช้ (Best Practices Applied)
+## 7. เทคนิคและ Best Practices ที่นำมาใช้
 
 1. **Accessibility-based Locators (`getByRole`, `getByLabel`):** ค้นหาปุ่มและช่องกรอกตามมาตรฐาน เข้าถึงง่ายและไม่พังเมื่อโครงสร้าง HTML เปลี่ยน
 2. **Scrolling Resilience (`scrollIntoViewIfNeeded`):** สั่งเลื่อนหน้าจอลงไปมองปุ่มหรือข้อความทุกครั้งก่อนทำการ Assert เพื่อแก้ปัญหาหน้าจอเรนเดอร์ไม่ทัน
@@ -256,4 +491,4 @@ Compress-Archive -Path playwright-report, test-results -DestinationPath Playwrig
 4. **Comprehensive Data Flow:** ผูกข้อมูลต่อเนื่อง (Create ➔ Edit ➔ Delete) ทำให้ทดสอบระบบได้เสมือนผู้ใช้งานจริง 100%
 
 ---
-*เอกสารนี้ถูกบันทึกลงในระบบและซิงค์ขึ้น GitHub Branch `test-post-ver1.1.0` สมบูรณ์แบบเรียบร้อยแล้ว*
+*เอกสารนี้ถูกบันทึกและซิงค์ขึ้น GitHub Branch `test-post-ver1.1.0` สมบูรณ์แบบ 100%*
